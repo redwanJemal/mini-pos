@@ -11,6 +11,7 @@ import {
   Trash2,
   Check,
   Receipt,
+  Search,
 } from 'lucide-react';
 import { parseQRData, formatCurrency, generateId, formatDateTime } from '../utils/helpers';
 import type { Transaction } from '../types';
@@ -20,7 +21,18 @@ export default function POS() {
   const [isScanning, setIsScanning] = useState(false);
   const [discount, setDiscount] = useState(0);
   const [showReceipt, setShowReceipt] = useState<Transaction | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showSearchResults, setShowSearchResults] = useState(false);
   const scannerRef = useRef<Html5Qrcode | null>(null);
+
+  const searchResults = searchQuery.trim()
+    ? products.filter(
+        (p) =>
+          p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          p.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          p.category?.toLowerCase().includes(searchQuery.toLowerCase())
+      ).slice(0, 5)
+    : [];
 
   const subtotal = cart.reduce((sum, item) => sum + item.product.salePrice * item.quantity, 0);
   const discountAmount = (subtotal * discount) / 100;
@@ -32,6 +44,11 @@ export default function POS() {
 
   const startScanner = async () => {
     try {
+      // Request camera permission first
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+      // Stop the test stream
+      stream.getTracks().forEach(track => track.stop());
+
       const scanner = new Html5Qrcode('pos-qr-reader');
       scannerRef.current = scanner;
 
@@ -50,8 +67,21 @@ export default function POS() {
       );
 
       setIsScanning(true);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to start scanner:', error);
+      let errorMessage = 'Failed to access camera. ';
+
+      if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
+        errorMessage += 'Camera permission denied. Please enable camera access in your browser settings.';
+      } else if (error.name === 'NotFoundError' || error.name === 'DevicesNotFoundError') {
+        errorMessage += 'No camera found on this device.';
+      } else if (error.name === 'NotReadableError' || error.name === 'TrackStartError') {
+        errorMessage += 'Camera is already in use by another application.';
+      } else {
+        errorMessage += 'Please check permissions and try again.';
+      }
+
+      alert(errorMessage);
     }
   };
 
@@ -229,6 +259,62 @@ export default function POS() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Product Search */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="relative"
+      >
+        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+        <input
+          type="text"
+          placeholder="Search products by name, code, or category..."
+          value={searchQuery}
+          onChange={(e) => {
+            setSearchQuery(e.target.value);
+            setShowSearchResults(true);
+          }}
+          onFocus={() => setShowSearchResults(true)}
+          className="w-full pl-12 pr-4 py-3 bg-white rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-500 shadow-lg"
+        />
+
+        {/* Search Results Dropdown */}
+        {showSearchResults && searchResults.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="absolute top-full left-0 right-0 mt-2 bg-white rounded-xl shadow-xl border border-gray-200 overflow-hidden z-10"
+          >
+            {searchResults.map((product) => (
+              <button
+                key={product.id}
+                onClick={() => {
+                  if (product.stock <= 0) {
+                    alert('Product out of stock');
+                    return;
+                  }
+                  addToCart(product, 1);
+                  setSearchQuery('');
+                  setShowSearchResults(false);
+                }}
+                className="w-full px-4 py-3 hover:bg-purple-50 transition-colors border-b border-gray-100 last:border-b-0 text-left"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex-1">
+                    <p className="font-medium text-gray-900">{product.name}</p>
+                    <p className="text-sm text-gray-600">
+                      {product.category && <span className="text-purple-600">{product.category} • </span>}
+                      Stock: {product.stock} • {formatCurrency(product.salePrice, settings.currency)}
+                    </p>
+                  </div>
+                  <Plus className="w-5 h-5 text-purple-500" />
+                </div>
+              </button>
+            ))}
+          </motion.div>
+        )}
+      </motion.div>
 
       {/* Cart */}
       <motion.div

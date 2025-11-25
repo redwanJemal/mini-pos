@@ -24,6 +24,7 @@ const navItems = [
 
 export default function Layout() {
   const alerts = useStore((state) => state.alerts);
+  const currentStaff = useStore((state) => state.currentStaff);
   const activeAlertsCount = alerts.filter((a) => !a.dismissed).length;
 
   return (
@@ -44,7 +45,9 @@ export default function Layout() {
                 <h1 className="text-xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
                   Smart POS
                 </h1>
-                <p className="text-xs text-gray-500">Inventory Management</p>
+                <p className="text-xs text-gray-500">
+                  {currentStaff ? `${currentStaff.name} (${currentStaff.role})` : 'Inventory Management'}
+                </p>
               </div>
             </motion.div>
 

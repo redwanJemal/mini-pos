@@ -44,7 +44,7 @@ export default function Products() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-32">
       {/* Header */}
       <div className="flex items-center justify-between">
         <motion.h1
@@ -204,6 +204,7 @@ function ProductForm({
   onClose: () => void;
   onSave: (product: Product) => void;
 }) {
+  const { products } = useStore();
   const [formData, setFormData] = useState({
     name: product?.name || '',
     costPrice: product?.costPrice || 0,
@@ -212,6 +213,11 @@ function ProductForm({
     lowStockThreshold: product?.lowStockThreshold || 5,
     category: product?.category || '',
   });
+
+  // Extract unique categories from existing products
+  const existingCategories = Array.from(
+    new Set(products.map((p) => p.category).filter((c): c is string => !!c))
+  );
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -244,13 +250,14 @@ function ProductForm({
         animate={{ y: 0, opacity: 1 }}
         exit={{ y: 100, opacity: 0 }}
         onClick={(e) => e.stopPropagation()}
-        className="bg-white rounded-t-3xl sm:rounded-3xl w-full max-w-lg max-h-[90vh] overflow-y-auto"
+        className="bg-white rounded-t-3xl sm:rounded-3xl w-full max-w-lg max-h-[90vh] flex flex-col"
       >
-        <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
+        <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between rounded-t-3xl sm:rounded-t-3xl z-10">
           <h2 className="text-xl font-bold text-gray-900">
             {product ? 'Edit Product' : 'Add Product'}
           </h2>
           <button
+            type="button"
             onClick={onClose}
             className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
           >
@@ -258,7 +265,8 @@ function ProductForm({
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+        <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
+          <div className="p-6 space-y-4 overflow-y-auto flex-1">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Product Name *
@@ -276,12 +284,39 @@ function ProductForm({
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Category
             </label>
-            <input
-              type="text"
-              value={formData.category}
-              onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-              className="w-full px-4 py-3 bg-gray-50 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-500"
-            />
+            <div className="relative">
+              <input
+                type="text"
+                list="categories"
+                value={formData.category}
+                onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                placeholder="Select or type a category"
+                className="w-full px-4 py-3 bg-gray-50 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-500"
+              />
+              <datalist id="categories">
+                {existingCategories.map((cat) => (
+                  <option key={cat} value={cat} />
+                ))}
+              </datalist>
+            </div>
+            {existingCategories.length > 0 && (
+              <div className="mt-2 flex flex-wrap gap-2">
+                {existingCategories.map((cat) => (
+                  <button
+                    key={cat}
+                    type="button"
+                    onClick={() => setFormData({ ...formData, category: cat })}
+                    className={`px-3 py-1 text-sm rounded-full transition-colors ${
+                      formData.category === cat
+                        ? 'bg-purple-500 text-white'
+                        : 'bg-purple-100 text-purple-700 hover:bg-purple-200'
+                    }`}
+                  >
+                    {cat}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           <div className="grid grid-cols-2 gap-4">
@@ -340,8 +375,9 @@ function ProductForm({
               />
             </div>
           </div>
+          </div>
 
-          <div className="flex gap-3 pt-4">
+          <div className="sticky bottom-0 bg-white border-t border-gray-200 px-6 py-4 flex gap-3 rounded-b-3xl sm:rounded-b-3xl">
             <button
               type="button"
               onClick={onClose}
