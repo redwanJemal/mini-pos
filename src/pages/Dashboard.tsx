@@ -52,7 +52,7 @@ export default function Dashboard() {
   }, [transactions]);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-32">
       {/* Welcome Section */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}
