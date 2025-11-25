@@ -16,6 +16,11 @@ export default function Scanner() {
 
   const startScanner = async () => {
     try {
+      // Request camera permission first
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+      // Stop the test stream
+      stream.getTracks().forEach(track => track.stop());
+
       const scanner = new Html5Qrcode('qr-reader');
       scannerRef.current = scanner;
 
@@ -34,9 +39,21 @@ export default function Scanner() {
       );
 
       setIsScanning(true);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to start scanner:', error);
-      setMessage({ type: 'error', text: 'Failed to access camera. Please check permissions.' });
+      let errorMessage = 'Failed to access camera. ';
+
+      if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
+        errorMessage += 'Camera permission denied. Please enable camera access in your browser settings.';
+      } else if (error.name === 'NotFoundError' || error.name === 'DevicesNotFoundError') {
+        errorMessage += 'No camera found on this device.';
+      } else if (error.name === 'NotReadableError' || error.name === 'TrackStartError') {
+        errorMessage += 'Camera is already in use by another application.';
+      } else {
+        errorMessage += 'Please check permissions and try again.';
+      }
+
+      setMessage({ type: 'error', text: errorMessage });
     }
   };
 
@@ -104,7 +121,7 @@ export default function Scanner() {
   }, []);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-32">
       {/* Header */}
       <motion.h1
         initial={{ opacity: 0, x: -20 }}

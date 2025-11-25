@@ -82,7 +82,7 @@ export default function Reports() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-32">
       {/* Header */}
       <div className="flex items-center justify-between">
         <motion.h1
